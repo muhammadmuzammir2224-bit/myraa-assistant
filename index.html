@@ -1,0 +1,507 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MYRAA — Personal Voice Assistant</title>
+<style>
+:root {
+  color-scheme: dark;
+  --bg: #080b14;
+  --panel: #111827;
+  --border: #273449;
+  --text: #f1f5f9;
+  --muted: #9ba9bd;
+  --accent: #7c9cff;
+  --cyan: #54e5e1;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  min-height: 100vh;
+  color: var(--text);
+  background:
+    radial-gradient(ellipse at top, #17264b 0%, transparent 45%),
+    var(--bg);
+  font-family: Inter, "Segoe UI", Arial, sans-serif;
+}
+main { max-width: 1000px; margin: auto; padding: 28px 18px 50px; }
+header { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
+.brand { font-size: 24px; font-weight: 800; letter-spacing: 4px; }
+.brand span { color: var(--cyan); }
+.pill { border: 1px solid var(--border); padding: 8px 12px; border-radius: 30px; color: var(--muted); font-size: 12px; }
+.hero { text-align: center; padding: 32px 0 25px; }
+.hero h1 { font-size: clamp(30px, 6vw, 48px); margin: 12px 0; letter-spacing: -1px; }
+.hero p { color: var(--muted); line-height: 1.7; margin: 0 auto; max-width: 580px; }
+.orb-wrap { display: flex; justify-content: center; margin: 25px 0; }
+.orb {
+  width: 145px; height: 145px; border-radius: 50%;
+  display: grid; place-items: center; position: relative;
+  background: radial-gradient(circle at 35% 30%, #6c9bff, #303c91 50%, #10162b 75%);
+  border: 1px solid #7e9eff88;
+  box-shadow: 0 0 35px #557cff44, inset 0 0 28px #91b3ff44;
+}
+.orb::before, .orb::after {
+  content: ""; position: absolute; inset: -12px; border: 1px solid #7c9cff55;
+  border-radius: 50%; animation: pulse 2.5s infinite;
+}
+.orb::after { inset: -24px; animation-delay: 1.1s; }
+.orb.active { box-shadow: 0 0 55px #54e5e177, inset 0 0 30px #54e5e166; }
+.orb.active::before, .orb.active::after { border-color: #54e5e1aa; }
+.orb strong { font-size: 36px; letter-spacing: 2px; }
+@keyframes pulse { 0% { transform: scale(.93); opacity: .7; } 100% { transform: scale(1.12); opacity: 0; } }
+.status { min-height: 24px; color: var(--cyan); font-size: 14px; margin: 12px 0 20px; }
+.controls { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
+button, select, input {
+  font: inherit; color: var(--text); border: 1px solid var(--border);
+  background: #172033; border-radius: 12px; padding: 12px 15px;
+}
+button { cursor: pointer; transition: .2s; }
+button:hover { border-color: var(--accent); transform: translateY(-1px); }
+button.primary { background: linear-gradient(120deg, #607ff0, #7967d9); border: 0; font-weight: 700; }
+button.danger { background: #391e2a; border-color: #71394d; }
+.grid { display: grid; grid-template-columns: 1.2fr .8fr; gap: 16px; margin-top: 28px; }
+.panel { background: #101827eF; border: 1px solid var(--border); border-radius: 18px; padding: 20px; min-width: 0; }
+.panel h2 { font-size: 16px; margin: 0 0 15px; }
+.muted { color: var(--muted); font-size: 13px; line-height: 1.7; }
+#log { height: 245px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+.message { padding: 11px 12px; border-radius: 10px; background: #182338; font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; }
+.message .who { color: var(--cyan); font-weight: 700; font-size: 11px; display: block; margin-bottom: 3px; }
+.message.user .who { color: #aabaff; }
+#actionArea { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+#actionArea a { color: var(--cyan); text-decoration: none; border: 1px solid var(--border); padding: 9px 11px; border-radius: 9px; font-size: 13px; }
+#actionArea a:hover { border-color: var(--cyan); }
+.command-list { display: grid; gap: 9px; }
+.command { padding: 10px 12px; border-radius: 10px; background: #182338; font-size: 13px; color: #d6deec; }
+.command b { color: var(--cyan); font-weight: 600; }
+.manual { display: flex; gap: 8px; margin-top: 14px; }
+.manual input { flex: 1; width: 100%; min-width: 0; }
+.settings { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px; align-items: center; }
+.settings label { font-size: 12px; color: var(--muted); }
+footer { color: #78869b; font-size: 12px; line-height: 1.7; text-align: center; margin-top: 25px; }
+@media (max-width: 700px) {
+  .grid { grid-template-columns: 1fr; }
+  header { align-items: flex-start; }
+  .pill { max-width: 150px; text-align: center; }
+  .hero { padding-top: 25px; }
+}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="brand">MY<span>RAA</span></div>
+    <div class="pill">PERSONAL VOICE ASSISTANT</div>
+  </header>
+
+  <section class="hero">
+    <div class="muted">YOUR PERSONAL ASSISTANT · VERSION 1.0</div>
+    <h1>How can I help you?</h1>
+    <p>Say <b>“MYRA”</b> to wake me up, then tell me what you need. You can also type a command below.</p>
+    <div class="orb-wrap"><div class="orb" id="orb"><strong>M</strong></div></div>
+    <div class="status" id="status" aria-live="polite">Assistant is sleeping.</div>
+    <div class="controls">
+      <button class="primary" id="startBtn">🎙 Start Listening</button>
+      <button class="danger" id="stopBtn">Stop Listening</button>
+      <button id="testBtn">Test Voice</button>
+    </div>
+    <div class="settings">
+      <label for="lang">Speech language</label>
+      <select id="lang">
+        <option value="en-PK">English / Pakistan (try Roman Urdu)</option>
+        <option value="en-US">English / US</option>
+        <option value="ur-PK">Urdu</option>
+      </select>
+      <label><input type="checkbox" id="speakToggle" checked style="padding:0;vertical-align:middle;"> Speak replies</label>
+    </div>
+  </section>
+
+  <section class="grid">
+    <div class="panel">
+      <h2>Conversation</h2>
+      <div id="log" aria-live="polite">
+        <div class="message"><span class="who">MYRAA</span>System ready. Press Start Listening and allow microphone access.</div>
+      </div>
+      <div id="actionArea"></div>
+      <form class="manual" id="commandForm">
+        <input id="commandInput" autocomplete="off" placeholder="Type a command..." aria-label="Type a command">
+        <button class="primary" type="submit">Send</button>
+      </form>
+      <p class="muted">Tip: if a website does not open automatically, use the link shown here.</p>
+    </div>
+
+    <div class="panel">
+      <h2>Things I can do</h2>
+      <div class="command-list">
+        <div class="command">Wake me: <b>MYRA</b></div>
+        <div class="command">Open Google / YouTube / Gmail</div>
+        <div class="command">Search Google for <b>computer science</b></div>
+        <div class="command">Open WhatsApp / ChatGPT / GitHub</div>
+        <div class="command">What time is it?</div>
+        <div class="command">What is today's date?</div>
+        <div class="command">Calculate 25 times 4</div>
+        <div class="command">Help / Sleep / Stop listening</div>
+      </div>
+      <p class="muted">Roman Urdu examples: “MYRA Google kholo”, “waqt kya hai”, “aaj ki date batao”, “das plus paanch”, “madad karo”. Voice recognition accuracy depends on your browser and language settings.</p>
+    </div>
+  </section>
+
+  <footer>
+    MYRAA runs in this browser tab. Keep the page open while using wake-word listening.
+    Voice recognition may use an online service. This version does not control Windows apps or listen when the browser is closed.
+  </footer>
+</main>
+
+<script>
+(() => {
+  "use strict";
+
+  const $ = id => document.getElementById(id);
+  const statusEl = $("status");
+  const orb = $("orb");
+  const log = $("log");
+  const actionArea = $("actionArea");
+  const startBtn = $("startBtn");
+  const stopBtn = $("stopBtn");
+  const langSelect = $("lang");
+  const speakToggle = $("speakToggle");
+  const commandInput = $("commandInput");
+
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  let recognition = null;
+  let listening = false;
+  let awake = false;
+  let restarting = false;
+  let lastTranscript = "";
+  let lastTranscriptAt = 0;
+
+  function setStatus(text, active = false) {
+    statusEl.textContent = text;
+    orb.classList.toggle("active", active);
+  }
+
+  function addMessage(who, text, isUser = false) {
+    const item = document.createElement("div");
+    item.className = "message" + (isUser ? " user" : "");
+    const label = document.createElement("span");
+    label.className = "who";
+    label.textContent = who;
+    const body = document.createElement("span");
+    body.textContent = text;
+    item.append(label, body);
+    log.appendChild(item);
+    log.scrollTop = log.scrollHeight;
+  }
+
+  function speak(text) {
+    if (!speakToggle.checked || !("speechSynthesis" in window)) return;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = langSelect.value === "ur-PK" ? "ur-PK" : "en-US";
+    utterance.rate = 1;
+    window.speechSynthesis.speak(utterance);
+  }
+
+  function reply(text) {
+    addMessage("MYRAA", text);
+    speak(text);
+  }
+
+  function normalize(text) {
+    return text.toLowerCase()
+      .replace(/[’']/g, "")
+      .replace(/[.,!?;:]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  function showLink(label, url) {
+    actionArea.replaceChildren();
+    const link = document.createElement("a");
+    link.href = url;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    link.textContent = "↗ " + label;
+    actionArea.appendChild(link);
+    // Browsers may block new tabs initiated by voice recognition.
+    // The visible link is a reliable manual fallback.
+    try {
+      const opened = window.open(url, "_blank", "noopener,noreferrer");
+      if (!opened) setStatus("Use the link below if the browser blocked the new tab.", true);
+    } catch (_) {
+      setStatus("Click the link below to open the website.", true);
+    }
+  }
+
+  function searchGoogle(query) {
+    const url = "https://www.google.com/search?q=" + encodeURIComponent(query);
+    showLink("Search Google: " + query, url);
+    reply("Searching Google for " + query + ". If it did not open, click the link.");
+  }
+
+  function website(name, url) {
+    showLink("Open " + name, url);
+    reply("Opening " + name + ". If a new tab was blocked, click the link.");
+  }
+
+  function safeCalculate(expression) {
+    let s = expression.toLowerCase()
+      .replace(/\b(what is|calculate|solve|kitna hota hai|hisab karo)\b/g, "")
+      .replace(/\b(plus|add|added to|jamaa|jama)\b/g, "+")
+      .replace(/\b(minus|subtract|minus karo|ghatao)\b/g, "-")
+      .replace(/\b(times|multiplied by|multiply|into|guna)\b/g, "*")
+      .replace(/\b(divided by|divide by|taqseem)\b/g, "/")
+      .replace(/\b(modulo|mod)\b/g, "%")
+      .replace(/\bx\b/g, "*")
+      .replace(/,/g, "")
+      .trim();
+
+    // Only basic arithmetic characters and numbers are permitted.
+    if (!s || !/^[0-9+\-*/%().\s]+$/.test(s)) return null;
+    if (!/[0-9]/.test(s)) return null;
+    try {
+      const result = Function('"use strict"; return (' + s + ');')();
+      if (typeof result !== "number" || !Number.isFinite(result)) return null;
+      return Number.isInteger(result) ? String(result) : String(Number(result.toFixed(8)));
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function handleCommand(raw, fromVoice = false) {
+    const original = raw.trim();
+    const text = normalize(original);
+    if (!text) return;
+    if (!fromVoice) addMessage("YOU", original, true);
+
+    actionArea.replaceChildren();
+
+    if (/^(help|commands|what can you do|madad karo|help karo|kya kar sakti ho)$/.test(text)) {
+      reply("I can open supported websites, search Google, tell you the date and time, and calculate basic maths. Say MYRA before a voice command.");
+      return;
+    }
+
+    if (/\b(stop listening|turn off microphone|band karo listening|sunna band karo)\b/.test(text)) {
+      stopListening();
+      reply("Microphone listening stopped.");
+      return;
+    }
+
+    if (/\b(sleep|go to sleep|so jao|aram karo)\b/.test(text)) {
+      awake = false;
+      setStatus(listening ? "Listening for MYRA." : "Assistant is sleeping.", listening);
+      reply("Going to sleep. Say MYRA when you need me.");
+      return;
+    }
+
+    if (/\b(time|what time|waqt|kitne baj|time batao)\b/.test(text)) {
+      const now = new Date();
+      reply("The time is " + now.toLocaleTimeString([], {hour: "numeric", minute: "2-digit"}) + ".");
+      return;
+    }
+
+    if (/\b(date|today|tareekh|tarikh|aaj ki date|today date)\b/.test(text)) {
+      const now = new Date();
+      reply("Today is " + now.toLocaleDateString("en-PK", {
+        weekday: "long", year: "numeric", month: "long", day: "numeric"
+      }) + ".");
+      return;
+    }
+
+    const searchMatch = text.match(/^(?:search google for|google par search karo|google pe search karo|search karo|search for|find)\s+(.+)$/);
+    if (searchMatch) {
+      searchGoogle(searchMatch[1]);
+      return;
+    }
+
+    const sites = [
+      {keys: ["youtube", "you tube"], name: "YouTube", url: "https://www.youtube.com/"},
+      {keys: ["google"], name: "Google", url: "https://www.google.com/"},
+      {keys: ["gmail", "email"], name: "Gmail", url: "https://mail.google.com/"},
+      {keys: ["whatsapp", "whatsapp web"], name: "WhatsApp Web", url: "https://web.whatsapp.com/"},
+      {keys: ["chatgpt", "chat gpt"], name: "ChatGPT", url: "https://chatgpt.com/"},
+      {keys: ["github", "git hub"], name: "GitHub", url: "https://github.com/"},
+      {keys: ["student toolbox", "studenttoolbox"], name: "StudentToolbox", url: "https://muhammadmuzammir2224-bit.github.io/student-toolbox/"},
+      {keys: ["facebook"], name: "Facebook", url: "https://www.facebook.com/"},
+      {keys: ["instagram"], name: "Instagram", url: "https://www.instagram.com/"},
+      {keys: ["wikipedia", "wiki"], name: "Wikipedia", url: "https://www.wikipedia.org/"},
+      {keys: ["translate", "google translate"], name: "Google Translate", url: "https://translate.google.com/"},
+      {keys: ["drive", "google drive"], name: "Google Drive", url: "https://drive.google.com/"},
+      {keys: ["calendar", "google calendar"], name: "Google Calendar", url: "https://calendar.google.com/"}
+    ];
+
+    const openIntent = /\b(open|launch|visit|kholo|khol do|chalao|par jao)\b/.test(text);
+    for (const site of sites) {
+      if (site.keys.some(key => text === key || text.includes(key)) &&
+          (openIntent || site.keys.some(key => text === key))) {
+        website(site.name, site.url);
+        return;
+      }
+    }
+
+    const mathWords = /\b(calculate|what is|kitna hota|hisab|plus|minus|times|multiplied|divided|guna|jama|jamaa|ghatao|taqseem)\b/.test(text);
+    if (mathWords) {
+      const result = safeCalculate(text);
+      if (result !== null) {
+        reply("The answer is " + result + ".");
+        return;
+      }
+    }
+
+    if (/\b(hello|hi|hey|salam|assalam o alaikum|assalamu alaikum)\b/.test(text)) {
+      reply("Hello! I am MYRAA. How can I help you?");
+      return;
+    }
+
+    reply("Sorry, I do not know that command yet. Say help to hear what I can do, or type a Google search.");
+  }
+
+  function wakeWordIn(text) {
+    // Speech recognition can misspell MYRA; these are best-effort variants.
+    return /\b(myra|myraa|mira|my rah|mai ra|my raa)\b/i.test(text);
+  }
+
+  function removeWakeWord(text) {
+    return text.replace(/\b(myra|myraa|mira|my rah|mai ra|my raa)\b/i, "").trim();
+  }
+
+  function onRecognitionResult(event) {
+    let transcript = "";
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      if (event.results[i].isFinal) transcript += event.results[i][0].transcript + " ";
+    }
+    transcript = transcript.trim();
+    if (!transcript) return;
+
+    // Avoid duplicated final results sometimes emitted by browser recognition.
+    const now = Date.now();
+    if (transcript === lastTranscript && now - lastTranscriptAt < 2500) return;
+    lastTranscript = transcript;
+    lastTranscriptAt = now;
+
+    addMessage("HEARD", transcript, true);
+
+    if (wakeWordIn(transcript)) {
+      const command = removeWakeWord(transcript);
+      awake = true;
+      setStatus("MYRA is awake. Listening for your command.", true);
+      if (command) {
+        handleCommand(command, true);
+        awake = false;
+        setStatus("Listening for MYRA.", listening);
+      } else {
+        reply("Yes? I am listening.");
+        setStatus("MYRA is awake. Say your command now.", true);
+      }
+      return;
+    }
+
+    if (awake) {
+      handleCommand(transcript, true);
+      awake = false;
+      setStatus("Listening for MYRA.", listening);
+    } else {
+      setStatus('Heard you. Say "MYRA" before your command.', listening);
+    }
+  }
+
+  function createRecognition() {
+    if (!SpeechRecognition) return null;
+    const r = new SpeechRecognition();
+    r.lang = langSelect.value;
+    r.continuous = true;
+    r.interimResults = false;
+    r.maxAlternatives = 1;
+    r.onresult = onRecognitionResult;
+    r.onerror = event => {
+      if (event.error === "not-allowed" || event.error === "service-not-allowed") {
+        listening = false;
+        setStatus("Microphone permission denied. Allow microphone access in Chrome settings.");
+      } else if (event.error === "no-speech") {
+        setStatus("Still listening for MYRA.", listening);
+      } else if (event.error !== "aborted") {
+        setStatus("Speech recognition issue: " + event.error + ". Try Start Listening again.");
+      }
+    };
+    r.onend = () => {
+      if (listening && !restarting) {
+        restarting = true;
+        setTimeout(() => {
+          restarting = false;
+          if (listening && recognition === r) {
+            try { r.start(); } catch (_) {}
+          }
+        }, 400);
+      } else if (!listening) {
+        setStatus("Assistant is sleeping.");
+      }
+    };
+    return r;
+  }
+
+  function startListening() {
+    if (!SpeechRecognition) {
+      setStatus("Speech recognition is not supported here. Open this page in desktop Google Chrome.");
+      reply("Your browser does not support voice recognition. You can still type commands.");
+      return;
+    }
+    if (listening) return;
+    try {
+      if (recognition) {
+        try { recognition.abort(); } catch (_) {}
+      }
+      recognition = createRecognition();
+      if (!recognition) return;
+      listening = true;
+      awake = false;
+      recognition.start();
+      setStatus('Listening. Say "MYRA" to wake me up.', true);
+      addMessage("MYRAA", "Listening started. Say MYRA, then your command.");
+    } catch (error) {
+      listening = false;
+      setStatus("Could not start microphone. Check permissions and try again.");
+    }
+  }
+
+  function stopListening() {
+    listening = false;
+    awake = false;
+    restarting = false;
+    if (recognition) {
+      try { recognition.onend = null; recognition.stop(); } catch (_) {}
+      recognition = null;
+    }
+    setStatus("Assistant is sleeping.");
+    orb.classList.remove("active");
+  }
+
+  startBtn.addEventListener("click", startListening);
+  stopBtn.addEventListener("click", stopListening);
+
+  $("testBtn").addEventListener("click", () => {
+    reply("Hello! I am MYRAA. My name is pronounced MY-RAA. Voice test successful.");
+  });
+
+  $("commandForm").addEventListener("submit", event => {
+    event.preventDefault();
+    const value = commandInput.value.trim();
+    if (!value) return;
+    handleCommand(value, false);
+    commandInput.value = "";
+  });
+
+  langSelect.addEventListener("change", () => {
+    if (listening) {
+      stopListening();
+      startListening();
+    }
+  });
+
+  if (!SpeechRecognition) {
+    setStatus("Voice recognition unavailable in this browser. Typing commands still works.");
+  }
+})();
+</script>
+</body>
+</html>
